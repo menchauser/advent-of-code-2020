@@ -13,9 +13,6 @@ procedure Day3 is
         end if;
     end Update_Pos;
     
-    -- We need big natural type because Ada does not provide one
-    type Big_Nat is range 0 .. 2**32;
-
     InputFile : File_Type;
     -- Length of map row is hardcoded for now
     MapRow    : String (1 .. MaxWidth);
@@ -35,9 +32,6 @@ begin
     Open (InputFile, In_File, "input3.txt");
     while not End_OF_File (InputFile) loop
         MapRow := Get_Line (InputFile);
-        Put (Pos31);
-        Put (" ");
-        Put_Line (MapRow);
         if MapRow(Pos11) = '#' then
             TC11 := TC11 + 1;
         end if;
