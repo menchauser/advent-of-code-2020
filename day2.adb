@@ -39,13 +39,11 @@ begin
         Get_Line (InputFile, TempStr, Last);
         Count := Count + 1;  
     end loop;
-    Put ("File contains lines: ");
+    Put ("Number of lines in input: ");
     Put (Count);
     New_Line;
     Reset (InputFile);
     -- Now we read and handle actual data
-    -- Format: %d-%d %c: %s
-    -- 
     while not End_Of_File (InputFile) loop	
         if Is_Valid (Get_Line (InputFile)) then
             Result := Result + 1;
