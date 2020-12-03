@@ -5,9 +5,6 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 procedure Day2 is
     InputFile : File_Type;
-    TempStr   : String (1..80);
-    Last      : Natural;
-    Count     : Natural := 0;
     Result    : Natural := 0;
 
     function Is_Valid (PasswordLine: String) return Boolean is 
@@ -33,17 +30,7 @@ procedure Day2 is
         end if;
     end Is_Valid;
 begin
-    -- We read file twice: first to determine size
     Open (InputFile, In_File, "input2.txt");
-    while not End_OF_File (InputFile) loop
-        Get_Line (InputFile, TempStr, Last);
-        Count := Count + 1;  
-    end loop;
-    Put ("Number of lines in input: ");
-    Put (Count);
-    New_Line;
-    Reset (InputFile);
-    -- Now we read and handle actual data
     while not End_Of_File (InputFile) loop	
         if Is_Valid (Get_Line (InputFile)) then
             Result := Result + 1;
