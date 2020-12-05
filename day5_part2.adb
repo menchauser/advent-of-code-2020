@@ -18,6 +18,7 @@ procedure Day5_Part2 is
 
     InputFile : File_Type;
     SeatCode  : Code_Type;
+    MinSeatId : Natural := Natural'Last;
     MaxSeatId : Natural := 0;
     Count     : Natural := 0;
 begin
@@ -33,17 +34,10 @@ begin
     -- Read all seat codes into array
     Reset (InputFile);
     declare 
-        subtype Code_Array_Idx is Natural range 1 .. Count;
-        type Code_Array_Type is array (Code_Array_Idx) of Natural;
-        SeatIds  : Code_Array_Type;
         Row      : Natural;
         Col      : Natural;
         SeatId   : Natural := 0;
-
-        procedure Sort is new Ada.Containers.Generic_Constrained_Array_Sort 
-            (Index_Type => Code_Array_Idx,
-             Element_Type => Natural, 
-             Array_Type => Code_Array_Type);
+        Sum      : Natural := 0;
     begin 
         Count := 0;
         while not End_Of_File (InputFile) loop
@@ -51,27 +45,20 @@ begin
             Row := To_Number (SeatCode (1 .. 7), RowM);
             Col := To_Number (SeatCode (8 .. 10), ColM);
             SeatId := Row * 8 + Col;
+            MinSeatId := Integer'Min (SeatId, MinSeatId);
             MaxSeatId := Integer'Max (SeatId, MaxSeatId);
             Count := Count + 1;
-            SeatIds(Count) := SeatId;
+            Sum := Sum + SeatId;
         end loop;
-        -- Sort array and search for missing seat
-        Sort (SeatIds);
-        SeatId := SeatIds (1);
-        for I in 2 .. SeatIds'Last loop
-            if (SeatIds(I) - SeatId) /= 1 then
-                Put ("Missing seat: " & Integer'Image(SeatId + 1));
-                New_Line;
-                exit;
-            end if;
-            SeatId := SeatIds(I);
-        end loop;
+        Put ("Max seat id: ");
+        Put (MaxSeatId, 4);
+        New_Line;
+        -- Missing Seat Id:
+        SeatId := (MinSeatId + MaxSeatId) * (Count + 1) / 2 - Sum;
+        Put ("Missing seat: ");
+        Put (SeatId, 4);
     end;
 
     Close (InputFile);
-
-    Put ("Highest seat id: ");
-    Put (MaxSeatId, 4);
-    New_Line;
 
 end Day5_Part2;
