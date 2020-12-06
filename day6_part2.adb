@@ -30,13 +30,6 @@ procedure Day6_Part2 is
         return Output;
     end;
 
-    procedure Print (Set : Group_Answers.Set) is
-    begin
-        for C in Set.Iterate loop
-            Put (Set(C));
-        end loop;
-    end;
-
     -- Main variables
     InputFile   : File_Type;
     Line        : Unbounded_String := To_Unbounded_String("");
@@ -74,14 +67,14 @@ begin
     end loop;
     Close (InputFile);
 
-    Put ("Lines: ");
-    Put (Count);
+    Put ("Lines:   ");
+    Put (Count, 5);
     New_Line;
     Put ("Entries: ");
-    Put (EntryCount);
+    Put (EntryCount, 5);
     New_Line;
-    Put ("Result: ");
-    Put (Result);
+    Put ("Result:  ");
+    Put (Result, 5);
     New_Line;
 
 end Day6_Part2;
