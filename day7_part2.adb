@@ -7,7 +7,6 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Hashed_Maps; 
-with Ada.Containers.Hashed_Sets;
 
 procedure Day7_Part2 is
     -- Bag descriptor
@@ -85,11 +84,6 @@ procedure Day7_Part2 is
          Hash => Hash_Func,
          Equivalent_Keys => Eq_Key);
 
-    package String_Sets is new Ada.Containers.Hashed_Sets
-        (Element_Type => Unbounded_String,
-         Hash => Hash_Func,
-         Equivalent_Elements => Eq_Key);
-    
     function Count_Result (InMap : Bag_Maps.Map; Root : Unbounded_String) return Natural is
         Result  : Natural := 0;
         Queue   : Bag_Vectors.Vector;
