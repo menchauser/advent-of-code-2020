@@ -28,7 +28,6 @@ procedure Day10 is
         end loop;
     end;
 
-
     -- Main variables
     InputFile : File_Type;
     Line      : Unbounded_String;
@@ -36,6 +35,7 @@ procedure Day10 is
     Input     : Int_Vector_T.Vector := Int_Vector_T.Empty_Vector;
     Next      : Integer;
     Diff_Counts : array (1 .. 3) of Natural := (others => 0);
+    Multipliers : constant array (1 .. 5) of Long_Integer := (1, 1, 2, 4, 7);
 begin
     -- Read File
     Open (InputFile, In_File, Ada.Command_Line.Argument (1));
@@ -77,42 +77,29 @@ begin
     Put (Diff_Counts(1) * Diff_Counts(3));
     New_Line;
 
-    -- For part 2 we can start to go from end and remove 1-2 diffs
-    -- Test_Permutations (Input);
-    -- let's find out longest groups of succeeding numbers
+    -- Part 2: scan groups of succeeding numbers and multiply their permutation count
     declare 
         Diff : Integer := 0;
         GroupLength : Natural := 1;
         Result : Long_Integer := 1;
-        Multipliers : array (1 .. 5) of Long_Integer := (1, 1, 2, 4, 7);
     begin
         Input.Prepend (0);
         Input.Append (Input.Last_Element + 3);
-        Put (Input); New_Line;
         for I in Input.First_Index .. Input.Last_Index - 1 loop
             Diff := Input(I + 1) - Input(I);
             if Input(I + 1) - Input(I) = 1 then
                 GroupLength := GroupLength + 1;
             else
-                Put ("Group finished, length: ");
-                Put (GroupLength);
-                New_Line;
+                Result := Result * Multipliers(GroupLength);
                 if GroupLength > 1 then
-                    Result := Result * Multipliers(GroupLength);
                     GroupLength := 1;
                 end if;
             end if;
         end loop;
-        if GroupLength > 0 then
-            Put ("Group finished, length: ");
-            Put (GroupLength);
-            New_Line;
-            if GroupLength > 1 then
-                Result := Result * Multipliers(GroupLength);
-            end if;
-        end if;
+        -- Last group is not counted
+        Result := Result * Multipliers(GroupLength);
 
-        Put ("Part 2 Result: ");
+        Put ("Part 2 result: ");
         Put (Result);
         New_Line;
     end;
