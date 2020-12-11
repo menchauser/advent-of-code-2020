@@ -1,11 +1,8 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
-with Ada.Long_Integer_Text_IO; use Ada.Long_Integer_Text_IO;
 with Ada.Strings; use Ada.Strings;
-with Ada.Strings.Maps; use Ada.Strings.Maps;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
-with Ada.Containers.Vectors;
 with Ada.Command_Line; 
 
 
@@ -36,7 +33,7 @@ procedure Day11 is
             loop 
                 Line := Get_Line (File);
                 for J in 1 .. Length (Line) loop
-                    Result(I, J) := Element (Line, J);
+                    Result (I, J) := Element (Line, J);
                 end loop;
                 I := I + 1;
                 exit when End_Of_File (File);
@@ -46,6 +43,7 @@ procedure Day11 is
         end;
     end;
 
+
     function Count_Occupied_Adj (Input : Input_T; Row, Col : Positive) return Natural is
         StartRow : Positive := Integer'Max (1, Row - 1);
         EndRow   : Positive := Integer'Min (Row + 1, Input'Last (1));
@@ -53,29 +51,73 @@ procedure Day11 is
         EndCol   : Positive := Integer'Min (Col + 1, Input'Last (2));
         Result : Natural := 0;
     begin
-        -- Put ("Count adjacents of "); Put (Row, 0); Put(','); Put (Col, 0); New_Line;
         for I in StartRow .. EndRow loop
             for J in StartCol .. EndCol loop
-                -- Put (Input (I, J));
                 if (I /= Row or J /= Col) and Input (I, J) = '#' then
                     Result := Result + 1;
                 end if;
             end loop;
-            -- New_Line;
         end loop; 
-        -- Put ("count = "); Put (Result, 0); New_Line;
-        
         return Result;
     end;
 
-    function Populate (Input : Input_T) return Input_T is
+    
+    -- Return 1 if first seat visible from (Row, Col) in direction determined 
+    -- by X, Y is occupied
+    function Occupied_Direction (
+        Input    : Input_T;
+        Row, Col : Positive;
+        X, Y     : Integer
+        ) return Natural 
+    is
+        I : Natural := Row + X;
+        J : Natural := Col + Y;
+    begin
+        while I > 0 
+            and then J > 0 
+            and then I <= Input'Last(1)
+            and then J <= Input'Last(2) loop
+            if Input (I, J) = 'L' then
+                return 0;
+            elsif Input (I, J) = '#' then
+                return 1;
+            end if;
+            I := I + X;
+            J := J + Y;
+        end loop;
+        return 0;
+    end;
+
+   
+    function Count_Occupied_Dir (Input : Input_T; Row, Col : Positive) return Natural is
+        Result : Natural := 0;
+    begin
+        -- go clockwise from right
+        return
+            Occupied_Direction (Input, Row, Col,    0,  1)  -- right
+            + Occupied_Direction (Input, Row, Col,  1,  1)  -- down-right
+            + Occupied_Direction (Input, Row, Col,  1,  0)  -- down
+            + Occupied_Direction (Input, Row, Col,  1, -1)  -- down-left
+            + Occupied_Direction (Input, Row, Col,  0, -1)  -- left
+            + Occupied_Direction (Input, Row, Col, -1, -1)  -- up-left
+            + Occupied_Direction (Input, Row, Col, -1,  0)  -- up
+            + Occupied_Direction (Input, Row, Col, -1,  1); -- up-right
+    end;
+
+
+    function Populate (
+        Input : Input_T; 
+        Count_Adj : access function (I : Input_T; Row, Col : Positive) return Natural;
+        Limit : Natural
+    ) return Input_T 
+    is
         Result : Input_T := Input;
     begin
         for I in Input'Range (1) loop
             for J in Input'Range (2) loop
-                if Input (I, J) = 'L' and then Count_Occupied_Adj (Input, I, J) = 0 then
+                if Input (I, J) = 'L' and then Count_Adj (Input, I, J) = 0 then
                     Result (I, J) := '#';
-                elsif Input (I, J) = '#' and then Count_Occupied_Adj (Input, I, J) >= 4 then
+                elsif Input (I, J) = '#' and then Count_Adj (Input, I, J) >= Limit then
                     Result (I, J) := 'L';
                 else
                     Result (I, J) := Input (I, J);
@@ -85,32 +127,21 @@ procedure Day11 is
         return Result;
     end;
 
-    -- Main variables
-    Input     : Input_T := Read_Input (Ada.Command_Line.Argument (1));
-begin
-    -- for I in Input'Range (1) loop
-    --     for J in Input'Range (2) loop
-    --         Put (Input (I, J));
-    --     end loop;
-    --     New_Line;
-    -- end loop;
 
-    -- Run Simulation
-    declare 
+    function Get_Stable_Result (
+        Input : Input_T; 
+        Count_Adj : access function (I : Input_T; Row, Col : Positive) return Natural;
+        Limit : Natural
+    ) return Natural 
+    is
         Current  : Input_T := Input;
-        Next     : Input_T := Populate (Current);
+        Next     : Input_T := Populate (Current, Count_Adj, Limit);
         Occupied : Natural := 0;
     begin
+        -- Run Simulation
         loop
-            -- for I in Next'Range (1) loop
-            --     for J in Next'Range (2) loop
-            --         Put (Next (I, J));
-            --     end loop;
-            --     New_Line;
-            -- end loop;
-            -- New_Line;
             if Next = Current then
-                Put_Line ("Found stable solution");
+                -- found stable solution
                 for I in Next'Range (1) loop
                     for J in Next'Range (2) loop
                         if Next (I, J) = '#' then
@@ -118,14 +149,26 @@ begin
                         end if;
                     end loop;
                 end loop;
-                Put ("Result: "); 
-                Put (Occupied, 0);
-                New_Line;
-                exit;
+                return Occupied;
             end if;
             Current := Next;
-            Next := Populate (Current);
+            Next := Populate (Current, Count_Adj, Limit);
         end loop;
     end;
+
+    -- Main variables
+    Input  : Input_T := Read_Input (Ada.Command_Line.Argument (1));
+    Result : Natural;
+begin
+    -- Run Simulation
+    Result := Get_Stable_Result (Input, Count_Occupied_Adj'Access, 4);
+    Put ("Part 1 Result: ");
+    Put (Result, 0);
+    New_Line;
+
+    Result := Get_Stable_Result (Input, Count_Occupied_Dir'Access, 5);
+    Put ("Part 2 Result: ");
+    Put (Result, 0);
+    New_Line;
 
 end Day11;
