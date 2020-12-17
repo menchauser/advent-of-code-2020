@@ -15,6 +15,14 @@ procedure Day17 is
         of Character;
 
 
+    type Space4d_Array is array (
+        Integer range <>,
+        Integer range <>,
+        Integer range <>,
+        Integer range <>
+    ) of Character;
+
+
     function Read_Input (File_Name : String) return Slice_Array is
         File  : File_Type;
         Width : Natural := 0;
@@ -73,6 +81,24 @@ procedure Day17 is
     end;
 
 
+    procedure Put (X : Space4d_Array) is
+    begin
+        for I in X'Range (1) loop
+            for J in X'Range (2) loop
+                Put ("z="); Put (J, 0); 
+                Put (", w="); Put (I, 0);
+                New_Line;
+                for K in X'Range (3) loop
+                    for L in X'Range (4) loop
+                        Put (X (I, J, K, L));
+                    end loop;
+                    New_Line;
+                end loop;
+                New_Line;
+            end loop;
+        end loop;
+    end;
+
     -- Note that first index is Z slice, then X, then Y
     procedure Calc_Bounds (
         Input   : Space_Array;
@@ -91,6 +117,30 @@ procedure Day17 is
 
         StartY := Integer'Max (Input'First (3), K - 1);
         EndY   := Integer'Min (K + 1, Input'Last (3));
+    end;
+
+
+    procedure Calc_Bounds (
+        Input   : Space4d_Array;
+        -- Current coordinates: W, Z, X, Y
+        I, J, K, L : Integer;
+        StartW, EndW : out Integer;
+        StartZ, EndZ : out Integer;
+        StartX, EndX : out Integer;
+        StartY, EndY : out Integer
+    ) is
+    begin
+        StartW := Integer'Max (Input'First (1), I - 1);
+        EndW   := Integer'Min (I + 1, Input'Last (1));
+
+        StartZ := Integer'Max (Input'First (2), J - 1);
+        EndZ   := Integer'Min (J + 1, Input'Last (2));
+
+        StartX := Integer'Max (Input'First (3), K - 1);
+        EndX   := Integer'Min (K + 1, Input'Last (3));
+
+        StartY := Integer'Max (Input'First (4), L - 1);
+        EndY   := Integer'Min (L + 1, Input'Last (4));
     end;
 
 
@@ -114,6 +164,35 @@ procedure Day17 is
             end loop;
         end loop;
         if Input (Z, X, Y) = '#' then
+            Count := Count - 1;
+        end if;
+        return Count;
+    end;
+
+
+    function Count_Neighbours4d (
+        Input   : Space4d_Array;
+        W, Z, X, Y : Integer
+    ) return Natural is
+        StartW, EndW : Integer;
+        StartZ, EndZ : Integer;
+        StartX, EndX : Integer;
+        StartY, EndY : Integer;
+        Count        : Natural := 0;
+    begin
+        Calc_Bounds (Input, W, Z, X, Y, StartW, EndW, StartZ, EndZ, StartX, EndX, StartY, EndY);
+        for I in StartW .. EndW loop
+            for J in StartZ .. EndZ loop
+                for K in StartX .. EndX loop
+                    for L in StartY .. EndY loop
+                        if Input (I, J, K, L) = '#' then
+                            Count := Count + 1;
+                        end if;
+                    end loop;
+                end loop;
+            end loop;
+        end loop;
+        if Input (W, Z, X, Y) = '#' then
             Count := Count - 1;
         end if;
         return Count;
@@ -155,9 +234,53 @@ procedure Day17 is
     end;
 
 
+    function Cycle4d (X : Space4d_Array) return Space4d_Array is
+        X1 : Space4d_Array(
+            (X'First (1) - 1) .. (X'Last (1) + 1),
+            (X'First (2) - 1) .. (X'Last (2) + 1),
+            (X'First (3) - 1) .. (X'Last (3) + 1),
+            (X'First (4) - 1) .. (X'Last (4) + 1)
+        );
+        Count : Natural := 0;
+    begin
+        for C of X1 loop
+            C := '.';
+        end loop;
+        for I in X'Range (1) loop
+            for J in X'Range (2) loop
+                for K in X'Range (3) loop
+                    for L in X'Range (4) loop
+                        Count := Count_Neighbours4d (X, I, J, K, L);
+                        if X (I, J, K, L) = '#' then
+                            if Count < 2 or Count > 3 then
+                                X1 (I, J, K, L) := '.';
+                            else
+                                X1 (I, J, K, L) := '#';
+                            end if;
+                        else
+                            if Count = 3 then
+                                X1 (I, J, K, L) := '#';
+                            else
+                                X1 (I, J, K, L) := '.';
+                            end if;
+                        end if;
+                    end loop;
+                end loop;
+            end loop;
+        end loop;
+        return X1;
+    end;
+
+
     -- Main variables
     Input : Slice_Array := Read_Input (Ada.Command_Line.Argument (1));
-    X  : Space_Array (
+    X   : Space_Array (
+        -1 .. 1, 
+        (Input'First (1) - 1) .. (Input'Last (1) + 1),
+        (Input'First (2) - 1) .. (Input'Last (2) + 1)
+    );
+    X4d : Space4d_Array (
+        -1 .. 1, 
         -1 .. 1, 
         (Input'First (1) - 1) .. (Input'Last (1) + 1),
         (Input'First (2) - 1) .. (Input'Last (2) + 1)
@@ -191,7 +314,36 @@ begin
                 Count := Count + 1;
             end if;
         end loop;
-        Put ("Executed 6 cycles. Cube count: ");
+        Put ("Part 1: executed 6 cycles. Cube count: ");
+        Put (Count, 0);
+        New_Line;
+    end;
+
+    -- Part 2
+    for C of X4d loop
+        C := '.';
+    end loop;
+    for I in Input'Range (1) loop
+        for J in Input'Range (2) loop
+            X4d (0, 0, I, J) := Input (I, J);
+        end loop;
+    end loop;
+
+    declare
+        X1 : Space4d_Array := Cycle4d (X4d);
+        X2 : Space4d_Array := Cycle4d (X1);
+        X3 : Space4d_Array := Cycle4d (X2);
+        X4 : Space4d_Array := Cycle4d (X3);
+        X5 : Space4d_Array := Cycle4d (X4);
+        X6 : Space4d_Array := Cycle4d (X5);
+        Count : Natural := 0;
+    begin
+        for C of X6 loop
+            if C = '#' then
+                Count := Count + 1;
+            end if;
+        end loop;
+        Put ("Part 2: executed 6 cycles. Cube count: ");
         Put (Count, 0);
         New_Line;
     end;
