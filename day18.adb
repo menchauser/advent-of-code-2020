@@ -36,10 +36,6 @@ procedure Day18 is
         (Index_Type   => Natural,
          Element_Type => Long_Integer);
 
-    package Char_Vec is new Ada.Containers.Vectors
-        (Index_Type   => Natural,
-         Element_Type => Character);
-    
     package Op_Vec is new Ada.Containers.Vectors
         (Index_Type   => Natural,
          Element_Type => Op_Token);
@@ -82,22 +78,13 @@ procedure Day18 is
         loop
             C := Element (Input, I);
             if Is_In (C, Digit_Chars) then
-                -- Put_Line ("read digit char: " & C);
                 Token := Token & C;
             elsif Is_In (C, Op_Chars) then
-                -- Put_Line ("read op char: " & C);
                 Op_Stack.Append ((Op => C, Depth => Depth));
             elsif C = '(' then
                 Depth := Depth + 1;
-                -- Put ("enter, new depth: "); Put (Depth, 0); 
-                -- Put (", ops: ");
-                -- for X of Op_Stack loop
-                    -- Put (X.Op & " ");
-                -- end loop;
-                -- New_Line;
             elsif C = ')' then
                 Depth := Depth - 1;
-                -- Put ("exit, new depth: "); Put (Depth, 0); New_Line;
                 if Token /= "" then
                     -- last token was number, add it to result
                     -- also add token from op stack, if exists
@@ -107,12 +94,6 @@ procedure Day18 is
                     begin
                         Result.Append (N);
                         Token := Null_Unbounded_String;
-                        -- Put ("Appended num: "); Put (Num, 0);
-                        -- Put (", ops: ");
-                        -- for X of Op_Stack loop
-                        --     Put (X & " ");
-                        -- end loop;
-                        -- New_Line;
                     end;
                 end if;
                 while not Op_Stack.Is_Empty loop
@@ -123,9 +104,7 @@ procedure Day18 is
                     );
                     Op_Stack.Delete_Last;
                 end loop;
-                -- Put ("current: "); Put (Result); New_Line;
             elsif C = ' ' then
-                -- Put_Line ("space");
                 if Token /= "" then
                     -- last token was number, add it to result
                     -- also add token from op stack, if exists
@@ -135,13 +114,6 @@ procedure Day18 is
                     begin
                         Result.Append (N);
                         Token := Null_Unbounded_String;
-                        -- Put ("Appended num: "); Put (Num, 0);
-                        -- Put (", ops: ");
-                        -- for X of Op_Stack loop
-                        --    Put (X & " ");
-                        -- end loop;
-                        -- New_Line;
-
                         while not Op_Stack.Is_Empty loop
                             OT := Op_Stack (Op_Stack.Last_Index);
                             exit when OT.Depth < Depth;
@@ -150,8 +122,6 @@ procedure Day18 is
                             );
                             Op_Stack.Delete_Last;
                         end loop;
-
-                        -- Put ("current: "); Put (Result); New_Line;
                     end;
                 end if;
             end if;
