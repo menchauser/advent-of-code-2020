@@ -12,7 +12,7 @@ with Ada.Command_Line;
 
 procedure Day18 is
     Digit_Chars : constant Character_Set := To_Set ("1234567890");
-    Op_Chars    : constant Character_Set := To_Set ("+*");
+    Op_Chars    : constant Character_Set := To_Set ("+*(");
 
     type Node_Class is (Number, Op);
 
@@ -39,6 +39,10 @@ procedure Day18 is
     package Op_Vec is new Ada.Containers.Vectors
         (Index_Type   => Natural,
          Element_Type => Op_Token);
+    
+    package Char_Vec is new Ada.Containers.Vectors
+        (Index_Type   => Natural,
+         Element_Type => Character);
 
     package Node_Vec is new Ada.Containers.Indefinite_Vectors
         (Index_Type   => Natural,
@@ -66,67 +70,75 @@ procedure Day18 is
 
 
     function Parse_To_RPN (Expr : Unbounded_String) return Node_Vec.Vector is
-        Input      : Unbounded_String := Expr & ' ';
+        -- Input      : Unbounded_String := Expr & ' ';
         Result     : Node_Vec.Vector := Node_Vec.Empty_Vector;
-        Op_Stack   : Op_Vec.Vector := Op_Vec.Empty_Vector;
+        Op_Stack   : Char_Vec.Vector := Char_Vec.Empty_Vector;
         I          : Natural := 1;
         C          : Character;
         Token      : Unbounded_String;
-        OT         : Op_Token;
-        Depth      : Natural := 0;
     begin
         loop
-            C := Element (Input, I);
+            C := Element (Expr, I);
             if Is_In (C, Digit_Chars) then
                 Token := Token & C;
             elsif Is_In (C, Op_Chars) then
-                Op_Stack.Append ((Op => C, Depth => Depth));
-            elsif C = '(' then
-                Depth := Depth + 1;
+                Op_Stack.Append (C);
             elsif C = ')' then
-                Depth := Depth - 1;
                 if Token /= "" then
                     -- last token was number, add it to result
                     -- also add token from op stack, if exists
-                    declare
-                        Num : Long_Integer := Long_Integer'Value (To_String (Token));
-                        N   : Node := (Class => Number, Value => Num);
-                    begin
-                        Result.Append (N);
-                        Token := Null_Unbounded_String;
-                    end;
+                    Result.Append ((
+                        Class => Number,
+                        Value => Long_Integer'Value (To_String (Token))
+                    ));
+                    Token := Null_Unbounded_String;
                 end if;
-                while not Op_Stack.Is_Empty loop
-                    OT := Op_Stack (Op_Stack.Last_Index);
-                    exit when OT.Depth < Depth;
-                    Result.Append (
-                        (Class => Op, Op => OT.Op)
-                    );
+                loop
+                    C := Op_Stack (Op_Stack.Last_Index);
                     Op_Stack.Delete_Last;
+                    exit when C = '(';
+                    Result.Append ((Class => Op, Op => C));
                 end loop;
+                if not Op_Stack.Is_Empty 
+                    and then Op_Stack.Last_Element /= '(' then 
+                    C := Op_Stack.Last_Element;
+                    Op_Stack.Delete_Last;
+                    Result.Append ((Class => Op, Op => C));
+                end if;
             elsif C = ' ' then
                 if Token /= "" then
                     -- last token was number, add it to result
                     -- also add token from op stack, if exists
-                    declare
-                        Num : Long_Integer := Long_Integer'Value (To_String (Token));
-                        N   : Node := (Class => Number, Value => Num);
-                    begin
-                        Result.Append (N);
-                        Token := Null_Unbounded_String;
-                        while not Op_Stack.Is_Empty loop
-                            OT := Op_Stack (Op_Stack.Last_Index);
-                            exit when OT.Depth < Depth;
-                            Result.Append (
-                                (Class => Op, Op => OT.Op)
-                            );
-                            Op_Stack.Delete_Last;
-                        end loop;
-                    end;
+                    Result.Append ((
+                        Class => Number,
+                        Value => Long_Integer'Value (To_String (Token))
+                    ));
+                    Token := Null_Unbounded_String;
+                    if not Op_Stack.Is_Empty 
+                        and then Op_Stack.Last_Element /= '(' then 
+                        C := Op_Stack.Last_Element;
+                        Op_Stack.Delete_Last;
+                        Result.Append ((Class => Op, Op => C));
+                    end if;
                 end if;
             end if;
             I := I + 1;
-            exit when I > Length (Input);
+            if I > Length (Expr) then
+                if Token /= "" then
+                    -- check last number at the end of string
+                    Result.Append ((
+                        Class => Number, 
+                        Value => Long_Integer'Value (To_String (Token))
+                    ));
+                    Token := Null_Unbounded_String;
+                end if;
+                while not Op_Stack.Is_Empty loop
+                    C := Op_Stack.Last_Element;
+                    Op_Stack.Delete_Last;
+                    Result.Append ((Class => Op, Op => C));
+                end loop;
+                exit;
+            end if;
         end loop;
         return Result;
     end Parse_To_RPN;
@@ -170,12 +182,12 @@ begin
     while not End_Of_File (File) loop
         Get_Line (File, Line);
         if Element (Line, 1) /= '#' then
-            RPN := Parse_To_RPN (Line);
-            Value := Eval_RPN (RPN);
-            Result := Result + Value;
             Put_Line (Line);
+            RPN := Parse_To_RPN (Line);
             Put (" => "); Put (RPN); New_Line;
+            Value := Eval_RPN (RPN);
             Put (" = "); Put (Value, 0);
+            Result := Result + Value;
             New_Line;
         end if;
     end loop;
