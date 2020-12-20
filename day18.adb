@@ -13,7 +13,6 @@ with Ada.Command_Line;
 procedure Day18 is
     Digit_Chars : constant Character_Set := To_Set ("1234567890");
     Op_Chars    : constant Character_Set := To_Set ("+*");
-    Brace_Chars : constant Character_Set := To_Set ("()");
 
     type Node_Class is (Number, Op);
 
@@ -101,6 +100,7 @@ procedure Day18 is
         end loop;
     end;
 
+    type Precedence_A is access function (Op : Character) return Natural;
 
     function Precedence1 (Op : Character) return Natural is
     begin 
@@ -112,6 +112,17 @@ procedure Day18 is
                 raise Program_Error;
         end case;
     end Precedence1;
+
+    function Precedence2 (Op : Character) return Natural is
+    begin 
+        case Op is
+            when '+' => return 2;
+            when '*' => return 1;
+            when '(' => return 0;
+            when others =>
+                raise Program_Error;
+        end case;
+    end Precedence2;
 
 
     function Tokenize (Expr : Unbounded_String) return Token_Vec.Vector is
@@ -161,7 +172,8 @@ procedure Day18 is
     end Tokenize;
 
 
-    function To_RPN (Tokens : Token_Vec.Vector) return Node_Vec.Vector is
+    function To_RPN (Tokens : Token_Vec.Vector; Prec : Precedence_A) 
+        return Node_Vec.Vector is
         Result     : Node_Vec.Vector := Node_Vec.Empty_Vector;
         Op_Stack   : Char_Vec.Vector := Char_Vec.Empty_Vector;
         C          : Character;
@@ -170,12 +182,15 @@ procedure Day18 is
             case T.Class is
                 when Number =>
                     Result.Append ((Class => Number, Value => T.Value));
-                    if not Op_Stack.Is_Empty 
-                        and then Op_Stack.Last_Element /= '(' then
-                        Result.Append ((Class => Op, Op => Op_Stack.Last_Element));
-                        Op_Stack.Delete_Last;
-                    end if;
                 when Op =>
+                    -- if new op has higher priority than one in stack
+                    while not Op_Stack.Is_Empty and then Prec (T.Op) <= Prec (Op_Stack.Last_Element) loop
+                        Result.Append ((
+                            Class => Op,
+                            Op    => Op_Stack.Last_Element
+                        ));
+                        Op_Stack.Delete_Last;
+                    end loop;
                     Op_Stack.Append (T.Op);
                 when LBrace =>
                     Op_Stack.Append ('(');
@@ -186,12 +201,11 @@ procedure Day18 is
                         exit when C = '(';
                         Result.Append ((Class => Op, Op => C));
                     end loop;
-                    if not Op_Stack.Is_Empty 
-                        and then Op_Stack.Last_Element /= '(' then
-                        Result.Append ((Class => Op, Op => Op_Stack.Last_Element));
-                        Op_Stack.Delete_Last;
-                    end if;
             end case;
+        end loop;
+        while not Op_Stack.Is_Empty loop
+            Result.Append ((Class => Op, Op => Op_Stack.Last_Element));
+            Op_Stack.Delete_Last;
         end loop;
         return Result;
     end To_RPN;
@@ -224,12 +238,14 @@ procedure Day18 is
     end Eval_RPN;
 
     -- Main variables
-    File   : File_Type;
-    Line   : Unbounded_String;
-    Parsed : Token_Vec.Vector;
-    RPN    : Node_Vec.Vector;
-    Value  : Long_Integer;
-    Result : Long_Integer := 0;
+    File    : File_Type;
+    Line    : Unbounded_String;
+    Parsed  : Token_Vec.Vector;
+    RPN1    : Node_Vec.Vector;
+    RPN2    : Node_Vec.Vector;
+    Value   : Long_Integer;
+    Result1 : Long_Integer := 0;
+    Result2 : Long_Integer := 0;
 begin
     Open (File, In_File, Ada.Command_Line.Argument (1));
 
@@ -239,18 +255,29 @@ begin
             Put_Line (Line);
             Parsed := Tokenize (Line);
             -- Put ("Tokens: "); Put (Parsed); New_Line;
-            RPN := To_RPN (Parsed);
-            Put ("RPN: "); Put (RPN); New_Line;
-            Value := Eval_RPN (RPN);
+
+            RPN1 := To_RPN (Parsed, Precedence1'Access);
+            Put ("RPN1: "); Put (RPN1); New_Line;
+            Value := Eval_RPN (RPN1);
             Put (" = "); Put (Value, 0);
-            Result := Result + Value;
             New_Line;
+            Result1 := Result1 + Value;
+
+            RPN2 := To_RPN (Parsed, Precedence2'Access);
+            Put ("RPN2: "); Put (RPN2); New_Line;
+            Value := Eval_RPN (RPN2);
+            Put (" = "); Put (Value, 0);
+            New_Line;
+            Result2 := Result2 + Value;
         end if;
     end loop;
 
     Close (File);
 
     Put ("Part 1 result: "); 
-    Put (Result, 0);
+    Put (Result1, 0);
+    New_Line;
+    Put ("Part 2 result: "); 
+    Put (Result2, 0);
     New_Line;
 end Day18;
